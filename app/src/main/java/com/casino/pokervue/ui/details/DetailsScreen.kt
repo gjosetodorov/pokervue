@@ -35,6 +35,7 @@ fun DetailsScreen(
     playerCards: List<Card?>,
     communityCards: List<Card?>,
     equityState: EquityState,
+    opponents: Int,
     onNavigateBack: () -> Unit
 ) {
     val handProbs = listOf(
@@ -82,29 +83,26 @@ fun DetailsScreen(
         }
         HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
 
-        // Cards row
-        Row(
+        // Cards section
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 32.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Player's hole cards — on top, larger, primary focus
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 playerCards.forEach { card ->
-                    PlayingCard(card = card, width = 56.dp, height = 84.dp, cornerRadius = 8.dp)
+                    PlayingCard(card = card, width = 64.dp, height = 96.dp, cornerRadius = 9.dp)
                 }
             }
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .width(1.5.dp)
-                    .height(48.dp)
-                    .background(Color.White.copy(alpha = 0.1f))
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Community cards — all 5 in a single row, slightly bigger than before
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 communityCards.forEach { card ->
-                    PlayingCard(card = card, width = 38.dp, height = 58.dp, cornerRadius = 5.dp)
+                    PlayingCard(card = card, width = 46.dp, height = 70.dp, cornerRadius = 6.dp)
                 }
             }
         }
@@ -122,7 +120,7 @@ fun DetailsScreen(
                             fontFamily = RajdhaniFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 68.sp,
-                            color = Cream.copy(alpha = 0.3f)
+                            color = Color.White.copy(alpha = 0.3f)
                         )
                     }
                     is EquityState.Calculating -> {
@@ -138,7 +136,7 @@ fun DetailsScreen(
                             fontFamily = RajdhaniFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 68.sp,
-                            color = Cream
+                            color = Color.White
                         )
                     }
                 }
@@ -214,7 +212,11 @@ fun DetailsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Calculated against 1 random opponent hand.",
+                text = if (opponents == 1) {
+                    "Calculated against 1 random opponent hand."
+                } else {
+                    "Calculated against $opponents random opponent hands."
+                },
                 fontSize = 12.sp,
                 color = Cream.copy(alpha = 0.35f),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 40.dp),

@@ -31,6 +31,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.casino.pokervue.R
+import com.casino.pokervue.ui.theme.RajdhaniFamily
 import kotlin.math.roundToInt
 
 private sealed class ActiveSlot {
@@ -167,7 +168,7 @@ fun TableScreen(
                             }
                             is EquityState.Calculating -> {
                                 CircularProgressIndicator(
-                                    color = Gold,
+                                    color = Color.White,
                                     strokeWidth = 3.dp,
                                     modifier = Modifier.size(40.dp)
                                 )
@@ -175,7 +176,8 @@ fun TableScreen(
                             is EquityState.Result -> {
                                 Text(
                                     text = "${state.winPercent.roundToInt()}%",
-                                    color = Cream,
+                                    color = Color.White,
+                                    fontFamily = RajdhaniFamily,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 76.sp,
                                     textAlign = TextAlign.Center

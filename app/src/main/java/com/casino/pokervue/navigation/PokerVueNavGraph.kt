@@ -40,6 +40,7 @@ fun PokerVueNavGraph() {
                     playerCards = gameViewModel.playerCards,
                     communityCards = gameViewModel.communityCards,
                     equityState = gameViewModel.equityState,
+                    opponents = gameViewModel.opponents,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

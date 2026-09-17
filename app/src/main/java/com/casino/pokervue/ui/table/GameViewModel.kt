@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.casino.pokervue.data.SettingsRepository
+import com.casino.pokervue.logic.EquityCalculator
 import com.casino.pokervue.model.Card
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -73,13 +74,24 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        val knownBoardCards = communityCards.filterNotNull()
+        val currentOpponents = opponents
+
         calculationJob?.cancel()
         calculationJob = viewModelScope.launch {
             equityState = EquityState.Calculating
             val result = withContext(Dispatchers.Default) {
-                EquityState.Result(winPercent = 0.0, tiePercent = 0.0, losePercent = 0.0)
+                EquityCalculator.calculate(
+                    holeCards = knownPlayerCards,
+                    boardCards = knownBoardCards,
+                    opponentCount = currentOpponents
+                )
             }
-            equityState = result
+            equityState = EquityState.Result(
+                winPercent = result.winPercent,
+                tiePercent = result.tiePercent,
+                losePercent = result.losePercent
+            )
         }
     }
 }
