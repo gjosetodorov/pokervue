@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.casino.pokervue.data.SettingsRepository
 import com.casino.pokervue.logic.EquityCalculator
+import com.casino.pokervue.logic.OutsCalculator
 import com.casino.pokervue.model.Card
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -32,6 +33,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var opponents by mutableStateOf(1)
         private set
     var equityState by mutableStateOf<EquityState>(EquityState.Idle)
+        private set
+    var outs by mutableStateOf<List<Card>>(emptyList())
         private set
 
     private var calculationJob: Job? = null
@@ -61,6 +64,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         playerCards = listOf(null, null)
         communityCards = listOf(null, null, null, null, null)
         equityState = EquityState.Idle
+        outs = emptyList()
         calculationJob?.cancel()
         viewModelScope.launch {
             opponents = settingsRepository.defaultOpponents.first()
@@ -69,12 +73,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun recalculate() {
         val knownPlayerCards = playerCards.filterNotNull()
+        val knownBoardCards = communityCards.filterNotNull()
+
+        outs = if (knownPlayerCards.size == 2) {
+            OutsCalculator.calculateOuts(knownPlayerCards, knownBoardCards)
+        } else {
+            emptyList()
+        }
+
         if (knownPlayerCards.size < 2) {
             equityState = EquityState.Idle
             return
         }
 
-        val knownBoardCards = communityCards.filterNotNull()
         val currentOpponents = opponents
 
         calculationJob?.cancel()

@@ -1,6 +1,7 @@
 package com.casino.pokervue.ui.details
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,8 +23,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.casino.pokervue.model.Card
-import com.casino.pokervue.model.Rank
-import com.casino.pokervue.model.Suit
 import com.casino.pokervue.ui.components.PlayingCard
 import com.casino.pokervue.ui.table.EquityState
 import com.casino.pokervue.ui.theme.Cream
@@ -36,8 +39,11 @@ fun DetailsScreen(
     communityCards: List<Card?>,
     equityState: EquityState,
     opponents: Int,
+    outs: List<Card>,
     onNavigateBack: () -> Unit
 ) {
+    var showAllOuts by remember { mutableStateOf(false) }
+
     val handProbs = listOf(
         HandProbRow("Royal Flush", "< 0.1%"),
         HandProbRow("Straight Flush", "0.2%"),
@@ -90,7 +96,6 @@ fun DetailsScreen(
                 .padding(horizontal = 32.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Player's hole cards — on top, larger, primary focus
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 playerCards.forEach { card ->
                     PlayingCard(card = card, width = 64.dp, height = 96.dp, cornerRadius = 9.dp)
@@ -99,7 +104,6 @@ fun DetailsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Community cards — all 5 in a single row, slightly bigger than before
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 communityCards.forEach { card ->
                     PlayingCard(card = card, width = 46.dp, height = 70.dp, cornerRadius = 6.dp)
@@ -184,28 +188,54 @@ fun DetailsScreen(
 
             // Improving outs
             SectionLabel("Improving Outs")
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "8 Outs",
-                        fontFamily = RajdhaniFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
-                        color = Cream
-                    )
-                    Text(
-                        text = "Cards that improve your hand",
-                        fontSize = 12.sp,
-                        color = Cream.copy(alpha = 0.4f)
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PlayingCard(card = Card(Rank.QUEEN, Suit.SPADES), width = 32.dp, height = 48.dp, cornerRadius = 4.dp)
-                    PlayingCard(card = Card(Rank.QUEEN, Suit.HEARTS), width = 32.dp, height = 48.dp, cornerRadius = 4.dp)
+            val boardIsFull = communityCards.filterNotNull().size >= 5
+            if (boardIsFull) {
+                Text(
+                    text = "No more cards to come.",
+                    fontSize = 13.sp,
+                    color = Cream.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(vertical = 14.dp)
+                )
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 14.dp)
+                        .then(if (outs.isNotEmpty()) Modifier.clickable { showAllOuts = true } else Modifier),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "${outs.size} Outs",
+                            fontFamily = RajdhaniFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            color = Cream
+                        )
+                        Text(
+                            text = "Cards that improve your hand",
+                            fontSize = 12.sp,
+                            color = Cream.copy(alpha = 0.4f)
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        outs.take(4).forEach { card ->
+                            PlayingCard(card = card, width = 32.dp, height = 48.dp, cornerRadius = 4.dp)
+                        }
+                        val remaining = outs.size - 4
+                        if (remaining > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp, 48.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.White.copy(alpha = 0.08f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("+$remaining", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Cream)
+                            }
+                        }
+                    }
                 }
             }
             HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
@@ -222,6 +252,30 @@ fun DetailsScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 40.dp),
                 textAlign = TextAlign.Center
             )
+        }
+    }
+
+    if (showAllOuts) {
+        AlertDialog(
+            onDismissRequest = { showAllOuts = false },
+            title = { Text("Cards that improve your hand") },
+            text = { OutsGrid(outs) },
+            confirmButton = {
+                TextButton(onClick = { showAllOuts = false }) { Text("Close") }
+            }
+        )
+    }
+}
+
+@Composable
+private fun OutsGrid(outs: List<Card>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        outs.chunked(6).forEach { rowCards ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                rowCards.forEach { card ->
+                    PlayingCard(card = card, width = 36.dp, height = 54.dp, cornerRadius = 4.dp)
+                }
+            }
         }
     }
 }
