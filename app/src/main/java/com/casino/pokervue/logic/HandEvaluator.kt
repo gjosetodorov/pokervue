@@ -3,15 +3,59 @@ package com.casino.pokervue.logic
 import com.casino.pokervue.model.Card
 import com.casino.pokervue.model.HandCategory
 import com.casino.pokervue.model.HandRank
-import com.casino.pokervue.model.Suit
+
+data class BestHand(
+    val rank: HandRank,
+    val cards: List<Card>
+)
 
 object HandEvaluator {
-    fun evaluate(cards: List<Card>): HandRank {
-        require(cards.size in 5..7) { "Evaluator needs 5-7 cards, got ${cards.size}" }
 
-        return combinations(cards, 5)
-            .map { evaluateExactlyFive(it) }
-            .max()
+    fun evaluate(cards: List<Card>): HandRank = evaluateBestHand(cards).rank
+
+    fun evaluateBestHand(cards: List<Card>): BestHand {
+        require(cards.size in 5..7) { "Evaluator needs 5-7 cards, got ${cards.size}" }
+        val best = combinations(cards, 5)
+            .map { hand -> BestHand(evaluateExactlyFive(hand), hand) }
+            .maxByOrNull { it.rank }
+            ?: error("No combinations found")
+
+        return best.copy(cards = relevantCards(best.cards, best.rank))
+    }
+
+    private fun relevantCards(hand: List<Card>, rank: HandRank): List<Card> {
+        return when (rank.category) {
+            HandCategory.HIGH_CARD -> emptyList()
+
+            HandCategory.PAIR -> {
+                val pairRank = rank.tiebreakers[0]
+                hand.filter { it.rank.value == pairRank }
+            }
+
+            HandCategory.TWO_PAIR -> {
+                val highPair = rank.tiebreakers[0]
+                val lowPair = rank.tiebreakers[1]
+                hand.filter { it.rank.value == highPair || it.rank.value == lowPair }
+            }
+
+            HandCategory.THREE_OF_A_KIND -> {
+                val tripRank = rank.tiebreakers[0]
+                hand.filter { it.rank.value == tripRank }
+            }
+
+            HandCategory.FOUR_OF_A_KIND -> {
+                val quadRank = rank.tiebreakers[0]
+                hand.filter { it.rank.value == quadRank }
+            }
+
+            HandCategory.FULL_HOUSE -> {
+                val tripRank = rank.tiebreakers[0]
+                val pairRank = rank.tiebreakers[1]
+                hand.filter { it.rank.value == tripRank || it.rank.value == pairRank }
+            }
+
+            HandCategory.STRAIGHT, HandCategory.FLUSH, HandCategory.STRAIGHT_FLUSH -> hand
+        }
     }
 
     private fun evaluateExactlyFive(hand: List<Card>): HandRank {
@@ -70,11 +114,8 @@ object HandEvaluator {
     private fun straightHighCard(ranksDescending: List<Int>): Int? {
         val distinct = ranksDescending.distinct()
         if (distinct.size != 5) return null
-
         if (distinct[0] - distinct[4] == 4) return distinct[0]
-
         if (distinct == listOf(14, 5, 4, 3, 2)) return 5
-
         return null
     }
 

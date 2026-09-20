@@ -8,8 +8,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.casino.pokervue.data.SettingsRepository
 import com.casino.pokervue.logic.EquityCalculator
+import com.casino.pokervue.logic.HandEvaluator
 import com.casino.pokervue.logic.OutsCalculator
+import com.casino.pokervue.logic.PartialHandDetector
 import com.casino.pokervue.model.Card
+import com.casino.pokervue.model.HandCategory
+import com.casino.pokervue.model.displayName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
@@ -35,6 +39,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var equityState by mutableStateOf<EquityState>(EquityState.Idle)
         private set
     var outs by mutableStateOf<List<Card>>(emptyList())
+        private set
+    var currentHandName by mutableStateOf<String?>(null)
+        private set
+    var highlightedCards by mutableStateOf<Set<Card>>(emptySet())
         private set
 
     private var calculationJob: Job? = null
@@ -65,6 +73,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         communityCards = listOf(null, null, null, null, null)
         equityState = EquityState.Idle
         outs = emptyList()
+        currentHandName = null
+        highlightedCards = emptySet()
         calculationJob?.cancel()
         viewModelScope.launch {
             opponents = settingsRepository.defaultOpponents.first()
@@ -79,6 +89,27 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             OutsCalculator.calculateOuts(knownPlayerCards, knownBoardCards)
         } else {
             emptyList()
+        }
+
+        if (knownPlayerCards.size == 2) {
+            val allCards = knownPlayerCards + knownBoardCards
+            if (allCards.size >= 5) {
+                val best = HandEvaluator.evaluateBestHand(allCards)
+                if (best.rank.category == HandCategory.HIGH_CARD) {
+                    currentHandName = null
+                    highlightedCards = emptySet()
+                } else {
+                    currentHandName = best.rank.displayName()
+                    highlightedCards = best.cards.toSet()
+                }
+            } else {
+                val partial = PartialHandDetector.detect(allCards)
+                currentHandName = partial?.name
+                highlightedCards = partial?.cards?.toSet() ?: emptySet()
+            }
+        } else {
+            currentHandName = null
+            highlightedCards = emptySet()
         }
 
         if (knownPlayerCards.size < 2) {

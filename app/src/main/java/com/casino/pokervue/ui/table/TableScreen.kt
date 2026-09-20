@@ -1,5 +1,6 @@
 package com.casino.pokervue.ui.table
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -16,21 +17,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.casino.pokervue.R
 import com.casino.pokervue.ui.components.CardPickerSheet
 import com.casino.pokervue.ui.components.OpponentSheet
 import com.casino.pokervue.ui.components.PlayingCard
 import com.casino.pokervue.ui.theme.Cream
 import com.casino.pokervue.ui.theme.Gold
-import androidx.compose.foundation.Image
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import com.casino.pokervue.R
 import com.casino.pokervue.ui.theme.RajdhaniFamily
 import kotlin.math.roundToInt
 
@@ -118,6 +118,24 @@ fun TableScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                gameViewModel.currentHandName?.let { handName ->
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = 12.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Black.copy(alpha = 0.35f))
+                            .border(1.dp, Gold.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = handName.uppercase(),
+                            color = Gold,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                     communityCards.forEachIndexed { index, card ->
                         PlayingCard(
@@ -125,6 +143,7 @@ fun TableScreen(
                             width = 52.dp,
                             height = 78.dp,
                             cornerRadius = 6.dp,
+                            highlighted = card != null && gameViewModel.highlightedCards.contains(card),
                             onClick = { activeSlot = ActiveSlot.Community(index) }
                         )
                     }
@@ -143,6 +162,7 @@ fun TableScreen(
                             width = 70.dp,
                             height = 106.dp,
                             cornerRadius = 9.dp,
+                            highlighted = card != null && gameViewModel.highlightedCards.contains(card),
                             onClick = { activeSlot = ActiveSlot.Player(index) }
                         )
                     }
@@ -160,7 +180,8 @@ fun TableScreen(
                             is EquityState.Idle -> {
                                 Text(
                                     text = "--",
-                                    color = Cream.copy(alpha = 0.3f),
+                                    color = Color.White.copy(alpha = 0.3f),
+                                    fontFamily = RajdhaniFamily,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 76.sp,
                                     textAlign = TextAlign.Center
@@ -168,7 +189,7 @@ fun TableScreen(
                             }
                             is EquityState.Calculating -> {
                                 CircularProgressIndicator(
-                                    color = Color.White,
+                                    color = Gold,
                                     strokeWidth = 3.dp,
                                     modifier = Modifier.size(40.dp)
                                 )
@@ -176,7 +197,7 @@ fun TableScreen(
                             is EquityState.Result -> {
                                 Text(
                                     text = "${state.winPercent.roundToInt()}%",
-                                    color = Color.White,
+                                    color = Gold,
                                     fontFamily = RajdhaniFamily,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 76.sp,

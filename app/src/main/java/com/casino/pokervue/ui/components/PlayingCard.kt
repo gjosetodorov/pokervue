@@ -30,6 +30,7 @@ fun PlayingCard(
     width: Dp,
     height: Dp,
     cornerRadius: Dp,
+    highlighted: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
     if (card == null) {
@@ -51,6 +52,11 @@ fun PlayingCard(
             .size(width, height)
             .clip(RoundedCornerShape(cornerRadius))
             .background(Color.White)
+            .then(
+                if (highlighted) {
+                    Modifier.border(2.5.dp, Gold, RoundedCornerShape(cornerRadius))
+                } else Modifier
+            )
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
     ) {
         if (resId != 0) {
@@ -61,8 +67,6 @@ fun PlayingCard(
                 contentScale = ContentScale.Fit
             )
         } else {
-            // Visible fallback if a specific card's resource wasn't found —
-            // makes a naming mismatch obvious instead of silently blank
             Text("${card.rank.symbol}${card.suit.symbol}", modifier = Modifier.align(Alignment.Center))
         }
     }
