@@ -22,7 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.casino.pokervue.logic.HandEvaluator
+import com.casino.pokervue.logic.PartialHandDetector
 import com.casino.pokervue.model.Card
+import com.casino.pokervue.model.HandCategory
 import com.casino.pokervue.ui.components.PlayingCard
 import com.casino.pokervue.ui.table.EquityState
 import com.casino.pokervue.ui.theme.Cream
@@ -30,8 +33,6 @@ import com.casino.pokervue.ui.theme.DarkSurface
 import com.casino.pokervue.ui.theme.Gold
 import com.casino.pokervue.ui.theme.RajdhaniFamily
 import kotlin.math.roundToInt
-
-private data class HandProbRow(val name: String, val probability: String, val active: Boolean = false)
 
 @Composable
 fun DetailsScreen(
@@ -44,23 +45,53 @@ fun DetailsScreen(
 ) {
     var showAllOuts by remember { mutableStateOf(false) }
 
-    val handProbs = listOf(
-        HandProbRow("Royal Flush", "< 0.1%"),
-        HandProbRow("Straight Flush", "0.2%"),
-        HandProbRow("Four of a Kind", "1.4%"),
-        HandProbRow("Full House", "12.8%"),
-        HandProbRow("Flush", "28.5%", active = true),
-        HandProbRow("Straight", "4.2%"),
-        HandProbRow("Three of a Kind", "8.1%"),
-        HandProbRow("Two Pair", "22.0%"),
-        HandProbRow("One Pair", "18.3%"),
-        HandProbRow("High Card", "4.5%")
-    )
-
-    val (winPct, tiePct, losePct) = when (equityState) {
-        is EquityState.Result -> Triple(equityState.winPercent, equityState.tiePercent, equityState.losePercent)
-        else -> Triple(0.0, 0.0, 0.0)
+    val winPct: Double
+    val tiePct: Double
+    val losePct: Double
+    val categoryPercents: Map<HandCategory, Double>
+    when (equityState) {
+        is EquityState.Result -> {
+            winPct = equityState.winPercent
+            tiePct = equityState.tiePercent
+            losePct = equityState.losePercent
+            categoryPercents = equityState.handCategoryPercents
+        }
+        else -> {
+            winPct = 0.0
+            tiePct = 0.0
+            losePct = 0.0
+            categoryPercents = emptyMap()
+        }
     }
+
+    val knownPlayer = playerCards.filterNotNull()
+    val knownBoard = communityCards.filterNotNull()
+
+    val currentCategory = if (knownPlayer.size == 2) {
+        val allCards = knownPlayer + knownBoard
+        if (allCards.size >= 5) {
+            HandEvaluator.evaluateBestHand(allCards).rank.category
+        } else {
+            when (PartialHandDetector.detect(allCards)?.name) {
+                "Pair" -> HandCategory.PAIR
+                "Two Pair" -> HandCategory.TWO_PAIR
+                "Three of a Kind" -> HandCategory.THREE_OF_A_KIND
+                else -> HandCategory.HIGH_CARD
+            }
+        }
+    } else null
+
+    val displayOrder = listOf(
+        HandCategory.STRAIGHT_FLUSH to "Straight Flush",
+        HandCategory.FOUR_OF_A_KIND to "Four of a Kind",
+        HandCategory.FULL_HOUSE to "Full House",
+        HandCategory.FLUSH to "Flush",
+        HandCategory.STRAIGHT to "Straight",
+        HandCategory.THREE_OF_A_KIND to "Three of a Kind",
+        HandCategory.TWO_PAIR to "Two Pair",
+        HandCategory.PAIR to "Pair",
+        HandCategory.HIGH_CARD to "High Card"
+    )
 
     Column(
         modifier = Modifier
@@ -101,9 +132,7 @@ fun DetailsScreen(
                     PlayingCard(card = card, width = 64.dp, height = 96.dp, cornerRadius = 9.dp)
                 }
             }
-
             Spacer(modifier = Modifier.height(20.dp))
-
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 communityCards.forEach { card ->
                     PlayingCard(card = card, width = 46.dp, height = 70.dp, cornerRadius = 6.dp)
@@ -176,11 +205,17 @@ fun DetailsScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Hand probabilities
+            // Hand probabilities — real, from simulation, current hand highlighted
             SectionLabel("Hand Probabilities")
-            handProbs.forEachIndexed { index, row ->
-                OutcomeRow(row.name, row.probability, highlight = row.active)
-                if (index < handProbs.lastIndex) {
+            displayOrder.forEachIndexed { index, (category, label) ->
+                val percent = categoryPercents[category] ?: 0.0
+                val valueText = if (percent in 0.0..0.05) "0%" else if (percent < 0.1) "< 0.1%" else "${percent.roundToInt()}%"
+                OutcomeRow(
+                    label = label,
+                    value = valueText,
+                    highlight = category == currentCategory
+                )
+                if (index < displayOrder.lastIndex) {
                     HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
                 }
             }
@@ -188,51 +223,63 @@ fun DetailsScreen(
 
             // Improving outs
             SectionLabel("Improving Outs")
-            val boardIsFull = communityCards.filterNotNull().size >= 5
-            if (boardIsFull) {
-                Text(
-                    text = "No more cards to come.",
-                    fontSize = 13.sp,
-                    color = Cream.copy(alpha = 0.4f),
-                    modifier = Modifier.padding(vertical = 14.dp)
-                )
-            } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 14.dp)
-                        .then(if (outs.isNotEmpty()) Modifier.clickable { showAllOuts = true } else Modifier),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "${outs.size} Outs",
-                            fontFamily = RajdhaniFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
-                            color = Cream
-                        )
-                        Text(
-                            text = "Cards that improve your hand",
-                            fontSize = 12.sp,
-                            color = Cream.copy(alpha = 0.4f)
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        outs.take(4).forEach { card ->
-                            PlayingCard(card = card, width = 32.dp, height = 48.dp, cornerRadius = 4.dp)
+            val boardIsFull = knownBoard.size >= 5
+            val boardTooEarly = knownBoard.size < 3
+            when {
+                boardTooEarly -> {
+                    Text(
+                        text = "Add the flop to see improving outs.",
+                        fontSize = 13.sp,
+                        color = Cream.copy(alpha = 0.4f),
+                        modifier = Modifier.padding(vertical = 14.dp)
+                    )
+                }
+                boardIsFull -> {
+                    Text(
+                        text = "No more cards to come.",
+                        fontSize = 13.sp,
+                        color = Cream.copy(alpha = 0.4f),
+                        modifier = Modifier.padding(vertical = 14.dp)
+                    )
+                }
+                else -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 14.dp)
+                            .then(if (outs.isNotEmpty()) Modifier.clickable { showAllOuts = true } else Modifier),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "${outs.size} Outs",
+                                fontFamily = RajdhaniFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                color = Cream
+                            )
+                            Text(
+                                text = "Cards that improve your hand",
+                                fontSize = 12.sp,
+                                color = Cream.copy(alpha = 0.4f)
+                            )
                         }
-                        val remaining = outs.size - 4
-                        if (remaining > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp, 48.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.White.copy(alpha = 0.08f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("+$remaining", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Cream)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            outs.take(4).forEach { card ->
+                                PlayingCard(card = card, width = 32.dp, height = 48.dp, cornerRadius = 4.dp)
+                            }
+                            val remaining = outs.size - 4
+                            if (remaining > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp, 48.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Color.White.copy(alpha = 0.08f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("+$remaining", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Cream)
+                                }
                             }
                         }
                     }

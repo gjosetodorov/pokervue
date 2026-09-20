@@ -23,7 +23,12 @@ import kotlinx.coroutines.withContext
 sealed interface EquityState {
     data object Idle : EquityState
     data object Calculating : EquityState
-    data class Result(val winPercent: Double, val tiePercent: Double, val losePercent: Double) : EquityState
+    data class Result(
+        val winPercent: Double,
+        val tiePercent: Double,
+        val losePercent: Double,
+        val handCategoryPercents: Map<HandCategory, Double>
+    ) : EquityState
 }
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
@@ -132,7 +137,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             equityState = EquityState.Result(
                 winPercent = result.winPercent,
                 tiePercent = result.tiePercent,
-                losePercent = result.losePercent
+                losePercent = result.losePercent,
+                handCategoryPercents = result.handCategoryPercents
             )
         }
     }
