@@ -1,5 +1,10 @@
 package com.casino.pokervue.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,13 +25,42 @@ object Routes {
     const val SETTINGS = "settings"
 }
 
+private const val TRANSITION_DURATION = 320
+
 @Composable
 fun PokerVueNavGraph() {
     val navController: NavHostController = rememberNavController()
     val gameViewModel: GameViewModel = viewModel()
 
     Surface(modifier = Modifier.fillMaxSize()) {
-        NavHost(navController = navController, startDestination = Routes.TABLE) {
+        NavHost(
+            navController = navController,
+            startDestination = Routes.TABLE,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> -fullWidth },
+                    animationSpec = tween(TRANSITION_DURATION)
+                ) + fadeIn(animationSpec = tween(TRANSITION_DURATION))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> fullWidth },
+                    animationSpec = tween(TRANSITION_DURATION)
+                ) + fadeOut(animationSpec = tween(TRANSITION_DURATION))
+            },
+            popEnterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> fullWidth },
+                    animationSpec = tween(TRANSITION_DURATION)
+                ) + fadeIn(animationSpec = tween(TRANSITION_DURATION))
+            },
+            popExitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> -fullWidth },
+                    animationSpec = tween(TRANSITION_DURATION)
+                ) + fadeOut(animationSpec = tween(TRANSITION_DURATION))
+            }
+        ) {
             composable(Routes.TABLE) {
                 TableScreen(
                     gameViewModel = gameViewModel,

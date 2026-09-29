@@ -170,7 +170,7 @@ fun TableScreen(
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     CircleIconButton(onClick = onNavigateToDetails, borderColor = Gold.copy(alpha = 0.5f)) {
-                        Icon(Icons.Outlined.BarChart, contentDescription = "Details", tint = Gold)
+                        Icon(Icons.Outlined.BarChart, contentDescription = "Details", tint = Cream)
                     }
                     Box(
                         modifier = Modifier.width(200.dp).height(76.dp),
@@ -189,7 +189,7 @@ fun TableScreen(
                             }
                             is EquityState.Calculating -> {
                                 CircularProgressIndicator(
-                                    color = Gold,
+                                    color = Color.White,
                                     strokeWidth = 3.dp,
                                     modifier = Modifier.size(40.dp)
                                 )
@@ -197,7 +197,7 @@ fun TableScreen(
                             is EquityState.Result -> {
                                 Text(
                                     text = "${state.winPercent.roundToInt()}%",
-                                    color = Gold,
+                                    color = Color.White,
                                     fontFamily = RajdhaniFamily,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 76.sp,
@@ -207,7 +207,7 @@ fun TableScreen(
                         }
                     }
                     CircleIconButton(onClick = onNavigateToCameraOrPicker, borderColor = Gold.copy(alpha = 0.5f)) {
-                        Icon(Icons.Filled.CameraAlt, contentDescription = "Scan cards", tint = Gold)
+                        Icon(Icons.Filled.CameraAlt, contentDescription = "Scan cards", tint = Cream)
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -262,7 +262,11 @@ private fun CircleIconButton(
     content: @Composable () -> Unit
 ) {
     Box(
-        modifier = Modifier.size(42.dp).clip(RoundedCornerShape(21.dp)).background(Color.Black.copy(alpha = 0.22f)),
+        modifier = Modifier
+            .size(42.dp)
+            .clip(RoundedCornerShape(21.dp))
+            .background(Color.Black.copy(alpha = 0.22f))
+            .border(1.dp, borderColor, RoundedCornerShape(21.dp)),
         contentAlignment = Alignment.Center
     ) {
         IconButton(onClick = onClick) { content() }
