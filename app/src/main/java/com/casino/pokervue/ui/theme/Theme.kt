@@ -1,7 +1,6 @@
 package com.casino.pokervue.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -33,15 +32,15 @@ private val PokerVueDarkScheme = darkColorScheme(
 
 private val PokerVueLightScheme = lightColorScheme(
     primary = GoldOnLight,
-    onPrimary = LightSurface,
+    onPrimary = Cream,
     secondary = FeltRed,
-    onSecondary = LightSurface,
-    background = LightSurface,
-    onBackground = LightOnSurface,
-    surface = LightSurface,
-    onSurface = LightOnSurface,
+    onSecondary = Cream,
+    background = Cream,
+    onBackground = DarkSurface,
+    surface = Cream,
+    onSurface = DarkSurface,
     error = DangerRed,
-    onError = LightSurface
+    onError = Cream
 )
 
 @Composable

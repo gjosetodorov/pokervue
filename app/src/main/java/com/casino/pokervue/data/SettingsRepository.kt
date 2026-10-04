@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,12 +14,14 @@ object SettingsKeys {
     val DARK_MODE = booleanPreferencesKey("dark_mode")
     val DEFAULT_OPPONENTS = intPreferencesKey("default_opponents")
     val HAPTIC_FEEDBACK = booleanPreferencesKey("haptic_feedback")
+    val SIMULATION_ITERATIONS = intPreferencesKey("simulation_iterations")
 }
 
 object SettingsDefaults {
     const val DARK_MODE = true
     const val DEFAULT_OPPONENTS = 1
     const val HAPTIC_FEEDBACK = true
+    const val SIMULATION_ITERATIONS = 3000
 }
 
 class SettingsRepository(private val context: Context) {
@@ -37,6 +38,10 @@ class SettingsRepository(private val context: Context) {
         prefs[SettingsKeys.HAPTIC_FEEDBACK] ?: SettingsDefaults.HAPTIC_FEEDBACK
     }
 
+    val simulationIterations: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[SettingsKeys.SIMULATION_ITERATIONS] ?: SettingsDefaults.SIMULATION_ITERATIONS
+    }
+
     suspend fun setDarkMode(value: Boolean) {
         context.dataStore.edit { it[SettingsKeys.DARK_MODE] = value }
     }
@@ -47,6 +52,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setHapticFeedback(value: Boolean) {
         context.dataStore.edit { it[SettingsKeys.HAPTIC_FEEDBACK] = value }
+    }
+
+    suspend fun setSimulationIterations(value: Int) {
+        context.dataStore.edit { it[SettingsKeys.SIMULATION_ITERATIONS] = value }
     }
 
     suspend fun resetAll() {

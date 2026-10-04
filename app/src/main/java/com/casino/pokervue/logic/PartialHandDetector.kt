@@ -11,6 +11,11 @@ object PartialHandDetector {
         val groupedByRank = cards.groupBy { it.rank }
         val groups = groupedByRank.values.sortedByDescending { it.size }
 
+        val quads = groups.firstOrNull { it.size == 4 }
+        if (quads != null) {
+            return PartialHand("Four of a Kind", quads)
+        }
+
         val trips = groups.firstOrNull { it.size == 3 }
         if (trips != null) {
             return PartialHand("Three of a Kind", trips)

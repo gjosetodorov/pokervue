@@ -248,6 +248,7 @@ fun TableScreen(
         ) {
             OpponentSheet(
                 currentValue = opponents,
+                hapticsEnabled = gameViewModel.hapticsEnabledState,
                 onValueSelected = { gameViewModel.updateOpponents(it) },
                 onDismiss = { showOpponentSheet = false }
             )

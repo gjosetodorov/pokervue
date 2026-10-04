@@ -6,11 +6,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -19,7 +21,6 @@ import com.casino.pokervue.R
 import com.casino.pokervue.model.Card
 import com.casino.pokervue.model.Rank
 import com.casino.pokervue.model.Suit
-import com.casino.pokervue.ui.theme.DarkSurface
 
 @Composable
 fun CardPickerSheet(
@@ -32,11 +33,14 @@ fun CardPickerSheet(
     val suit = suits[activeSuit]
     val context = LocalContext.current
 
+    val background = MaterialTheme.colorScheme.background
+    val onBackground = MaterialTheme.colorScheme.onBackground
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(DarkSurface)
+            .background(background)
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 32.dp)
     ) {
         // Drag handle
@@ -45,11 +49,11 @@ fun CardPickerSheet(
                 .align(Alignment.CenterHorizontally)
                 .size(width = 48.dp, height = 6.dp)
                 .clip(RoundedCornerShape(3.dp))
-                .background(Color.White.copy(alpha = 0.2f))
+                .background(onBackground.copy(alpha = 0.2f))
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Suit tabs — segmented selector
+        // Suit tabs — segmented selector; unselected icons render gray, selected shows true color
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
@@ -61,14 +65,14 @@ fun CardPickerSheet(
                         .weight(1f)
                         .height(44.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (active) Color.White else Color.White.copy(alpha = 0.05f))
+                        .background(if (active) onBackground.copy(alpha = 0.08f) else Color.Transparent)
                         .clickable { activeSuit = i },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(id = suitIconRes(s)),
                         contentDescription = s.name,
-                        tint = Color.Unspecified,
+                        tint = if (active) Color.Unspecified else onBackground.copy(alpha = 0.3f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -93,7 +97,7 @@ fun CardPickerSheet(
                             .weight(1f)
                             .aspectRatio(2f / 3f)
                             .clip(RoundedCornerShape(9.dp))
-                            .background(if (disabled) Color.White.copy(alpha = 0.04f) else Color.White)
+                            .background(if (disabled) onBackground.copy(alpha = 0.04f) else onBackground.copy(alpha = 0.02f))
                             .then(
                                 if (!disabled) Modifier.clickable {
                                     onSelect(card)

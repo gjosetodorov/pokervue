@@ -22,8 +22,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val hapticFeedback: StateFlow<Boolean> = repository.hapticFeedback
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    val simulationIterations: StateFlow<Int> = repository.simulationIterations
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 3000)
+
     fun setDarkMode(value: Boolean) = viewModelScope.launch { repository.setDarkMode(value) }
     fun setDefaultOpponents(value: Int) = viewModelScope.launch { repository.setDefaultOpponents(value) }
     fun setHapticFeedback(value: Boolean) = viewModelScope.launch { repository.setHapticFeedback(value) }
+    fun setSimulationIterations(value: Int) = viewModelScope.launch { repository.setSimulationIterations(value) }
     fun resetAll() = viewModelScope.launch { repository.resetAll() }
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -13,14 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.casino.pokervue.ui.theme.Cream
-import com.casino.pokervue.ui.theme.DarkSurface
 import com.casino.pokervue.ui.theme.Gold
 import com.casino.pokervue.ui.theme.RajdhaniFamily
 import kotlin.math.roundToInt
@@ -29,26 +27,30 @@ import kotlin.math.roundToInt
 @Composable
 fun OpponentSheet(
     currentValue: Int,
+    hapticsEnabled: Boolean,
     onValueSelected: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     var tempValue by remember(currentValue) { mutableFloatStateOf(currentValue.toFloat()) }
+    val haptic = LocalHapticFeedback.current
+
+    val background = MaterialTheme.colorScheme.background
+    val onBackground = MaterialTheme.colorScheme.onBackground
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(DarkSurface)
+            .background(background)
             .padding(horizontal = 24.dp)
             .padding(top = 12.dp, bottom = 36.dp)
     ) {
-        // Drag handle
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .size(width = 40.dp, height = 4.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(Color.White.copy(alpha = 0.2f))
+                .background(onBackground.copy(alpha = 0.2f))
         )
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -56,7 +58,7 @@ fun OpponentSheet(
             text = "Number of opponents",
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = Cream.copy(alpha = 0.5f),
+            color = onBackground.copy(alpha = 0.5f),
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -66,32 +68,59 @@ fun OpponentSheet(
             fontFamily = RajdhaniFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 40.sp,
-            color = Cream,
+            color = onBackground,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Continuous slider (no tick dots) — snapped to whole numbers ourselves,
-        // with a custom circular thumb matching the Figma design.
         Slider(
             value = tempValue,
-            onValueChange = { tempValue = it },
+            onValueChange = { newValue ->
+                val rounded = newValue.roundToInt().toFloat()
+                if (rounded != tempValue && hapticsEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                }
+                tempValue = rounded
+            },
             onValueChangeFinished = {
-                tempValue = tempValue.roundToInt().toFloat()
+                tempValue = tempValue.roundToInt().coerceIn(1, 8).toFloat()
                 onValueSelected(tempValue.roundToInt())
             },
             valueRange = 1f..8f,
+            steps = 6,
+            modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
-                activeTrackColor = Gold,
-                inactiveTrackColor = Color.White.copy(alpha = 0.1f)
+                thumbColor = onBackground
             ),
             thumb = {
                 Box(
                     modifier = Modifier
-                        .size(22.dp)
+                        .size(24.dp)
                         .clip(CircleShape)
-                        .background(Cream)
+                        .background(onBackground)
                 )
+            },
+            track = { sliderState ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(onBackground.copy(alpha = 0.1f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(
+                                fraction = sliderState.valueRange.let {
+                                    (sliderState.value - it.start) /
+                                            (it.endInclusive - it.start)
+                                }
+                            )
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Gold)
+                    )
+                }
             }
         )
 
@@ -99,8 +128,8 @@ fun OpponentSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("1", fontSize = 11.sp, color = Cream.copy(alpha = 0.35f))
-            Text("8", fontSize = 11.sp, color = Cream.copy(alpha = 0.35f))
+            Text("1", fontSize = 11.sp, color = onBackground.copy(alpha = 0.35f))
+            Text("8", fontSize = 11.sp, color = onBackground.copy(alpha = 0.35f))
         }
     }
 }

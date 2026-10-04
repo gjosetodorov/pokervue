@@ -1,6 +1,11 @@
 package com.casino.pokervue.ui.table
 
 import android.app.Application
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.compose.runtime.getValue
@@ -35,6 +40,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private val settingsRepository = SettingsRepository(application.applicationContext)
 
+    private val vibrator: Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val manager = application.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        manager.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        application.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+
     var playerCards by mutableStateOf(listOf<Card?>(null, null))
         private set
     var communityCards by mutableStateOf(listOf<Card?>(null, null, null, null, null))
@@ -49,12 +62,28 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var highlightedCards by mutableStateOf<Set<Card>>(emptySet())
         private set
+    var hapticsEnabledState by mutableStateOf(true)
+        private set
 
     private var calculationJob: Job? = null
+    private var lastKnownCategory: HandCategory? = null
+    private var hapticsEnabled: Boolean = true
+    private var simulationIterations: Int = 3000
 
     init {
         viewModelScope.launch {
             opponents = settingsRepository.defaultOpponents.first()
+        }
+        viewModelScope.launch {
+            settingsRepository.hapticFeedback.collect { enabled ->
+                hapticsEnabled = enabled
+                hapticsEnabledState = enabled
+            }
+        }
+        viewModelScope.launch {
+            settingsRepository.simulationIterations.collect { iterations ->
+                simulationIterations = iterations
+            }
         }
     }
 
@@ -80,6 +109,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         outs = emptyList()
         currentHandName = null
         highlightedCards = emptySet()
+        lastKnownCategory = null
         calculationJob?.cancel()
         viewModelScope.launch {
             opponents = settingsRepository.defaultOpponents.first()
@@ -96,10 +126,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             emptyList()
         }
 
+        var newCategory: HandCategory? = null
+
         if (knownPlayerCards.size == 2) {
             val allCards = knownPlayerCards + knownBoardCards
             if (allCards.size >= 5) {
                 val best = HandEvaluator.evaluateBestHand(allCards)
+                newCategory = best.rank.category
                 if (best.rank.category == HandCategory.HIGH_CARD) {
                     currentHandName = null
                     highlightedCards = emptySet()
@@ -111,11 +144,26 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 val partial = PartialHandDetector.detect(allCards)
                 currentHandName = partial?.name
                 highlightedCards = partial?.cards?.toSet() ?: emptySet()
+                newCategory = when (partial?.name) {
+                    "Pair" -> HandCategory.PAIR
+                    "Two Pair" -> HandCategory.TWO_PAIR
+                    "Three of a Kind" -> HandCategory.THREE_OF_A_KIND
+                    "Four of a Kind" -> HandCategory.FOUR_OF_A_KIND
+                    else -> null
+                }
             }
         } else {
             currentHandName = null
             highlightedCards = emptySet()
         }
+
+        val effectiveLastCategory = lastKnownCategory ?: HandCategory.HIGH_CARD
+        val effectiveNewCategory = newCategory ?: HandCategory.HIGH_CARD
+
+        if (knownPlayerCards.size == 2 && effectiveNewCategory.strength > effectiveLastCategory.strength) {
+            triggerHandImprovedHaptic()
+        }
+        lastKnownCategory = newCategory
 
         if (knownPlayerCards.size < 2) {
             equityState = EquityState.Idle
@@ -131,7 +179,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 EquityCalculator.calculate(
                     holeCards = knownPlayerCards,
                     boardCards = knownBoardCards,
-                    opponentCount = currentOpponents
+                    opponentCount = currentOpponents,
+                    iterations = simulationIterations
                 )
             }
             equityState = EquityState.Result(
@@ -140,6 +189,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 losePercent = result.losePercent,
                 handCategoryPercents = result.handCategoryPercents
             )
+        }
+    }
+
+    private fun triggerHandImprovedHaptic() {
+        if (!hapticsEnabled) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(250)
         }
     }
 }
