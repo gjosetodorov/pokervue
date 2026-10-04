@@ -241,7 +241,7 @@ private fun SettingsRow(
             toggle != null -> Switch(
                 checked = toggle,
                 onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(checkedTrackColor = FeltRed)
+                colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF5A5A5E))
             )
             value != null -> Text(value, fontSize = 13.5.sp, color = mutedColor)
         }
